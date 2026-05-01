@@ -22,7 +22,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${DDL_AUTO:update}
-    show-sql: ${SHOW_SQL:false}
+    show-sql: ${SHOW_SQL:true}
     properties:
       hibernate:
         format_sql: true
@@ -79,7 +79,7 @@ app:
     email: ${ADMIN_EMAIL:admin@proelitemotors.com}
 
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000,https://preview--moments-connect-hub.lovable.app/}
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
 
   version: 1.0.0
 
