@@ -38,7 +38,7 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     private static final String[] PUBLIC_GET = {
-            "/api/vehicles/**",
+            "/api/vehicles/**",        // all vehicle endpoints including carfax
             "/api/health",
             "/api-docs/**",
             "/swagger-ui/**",
@@ -47,7 +47,6 @@ public class SecurityConfig {
     };
 
     private static final String[] PUBLIC_POST = {
-            "/api/v1/auth/**",
             "/api/auth/**",
             "/api/inquiries"
     };

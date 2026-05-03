@@ -22,7 +22,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${DDL_AUTO:update}
-    show-sql: ${SHOW_SQL:true}
+    show-sql: ${SHOW_SQL:false}
     properties:
       hibernate:
         format_sql: true
@@ -80,6 +80,12 @@ app:
 
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+
+  carfax:
+    api-key: ${CARFAX_API_KEY:}
+    api-url: ${CARFAX_API_URL:https://api.carfax.com/v1}
+    enabled: ${CARFAX_ENABLED:false}
+    cache-days: ${CARFAX_CACHE_DAYS:7}
 
   version: 1.0.0
 
