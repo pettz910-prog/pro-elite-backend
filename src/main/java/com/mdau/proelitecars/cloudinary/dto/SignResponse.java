@@ -3,6 +3,7 @@ package com.mdau.proelitecars.cloudinary.dto;
 import lombok.Builder;
 import lombok.Data;
 
+
 @Data
 @Builder
 public class SignResponse {
@@ -12,4 +13,5 @@ public class SignResponse {
     private String cloudName;
     private String folder;
     private String publicId;
+    private String uploadUrl;
 }

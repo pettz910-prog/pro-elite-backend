@@ -51,6 +51,7 @@ public class CloudinaryService {
                     .cloudName(cloudName)
                     .folder(request.getFolder())
                     .publicId(request.getPublicId())
+                    .uploadUrl("https://api.cloudinary.com/v1_1/" + cloudName + "/image/upload")  // ADD THIS
                     .build();
 
         } catch (Exception e) {
