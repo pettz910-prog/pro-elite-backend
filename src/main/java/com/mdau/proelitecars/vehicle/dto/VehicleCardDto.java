@@ -1,10 +1,12 @@
 package com.mdau.proelitecars.vehicle.dto;
 
+import com.mdau.proelitecars.vehicle.entity.*;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -18,16 +20,18 @@ public class VehicleCardDto {
     private Integer year;
     private BigDecimal price;
     private BigDecimal msrp;
-    private String status;
-    private String condition;
-    private String bodyStyle;
-    private String fuelType;
-    private String transmission;
-    private String badge;
+    private VehicleStatus status;
+    private VehicleCondition condition;
+    private BodyStyle bodyStyle;
+    private FuelType fuelType;
+    private Transmission transmission;
+    private VehicleBadge badge;
+    private Drivetrain drivetrain;
     private Integer mileage;
     private String exteriorColor;
     private String primaryImageUrl;
     private String location;
     private boolean featured;
+    private List<String> images;
     private Instant createdAt;
 }

@@ -1,5 +1,6 @@
 package com.mdau.proelitecars.vehicle.dto;
 
+import com.mdau.proelitecars.vehicle.entity.*;
 import lombok.Builder;
 import lombok.Data;
 
@@ -21,17 +22,17 @@ public class VehicleDto {
     private String stockNumber;
     private BigDecimal price;
     private BigDecimal msrp;
-    private String status;
-    private String condition;
-    private String bodyStyle;
-    private String fuelType;
-    private String transmission;
-    private String badge;
+    private VehicleStatus status;
+    private VehicleCondition condition;
+    private BodyStyle bodyStyle;
+    private FuelType fuelType;
+    private Transmission transmission;
+    private VehicleBadge badge;
+    private Drivetrain drivetrain;
     private Integer mileage;
     private String exteriorColor;
     private String interiorColor;
     private String engine;
-    private String drivetrain;
     private Integer doors;
     private Integer seats;
     private String location;
