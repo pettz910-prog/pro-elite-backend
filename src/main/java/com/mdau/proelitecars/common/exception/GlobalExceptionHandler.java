@@ -2,6 +2,7 @@ package com.mdau.proelitecars.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -34,6 +35,22 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         pd.setType(URI.create("https://proelitemotors.com/errors/validation"));
         pd.setProperty("timestamp", Instant.now());
         log.warn("❌ Validation failed: {}", detail);
+        return ResponseEntity.badRequest().body(pd);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+
+        String detail = ex.getMostSpecificCause().getMessage();
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
+        pd.setTitle("Bad Request");
+        pd.setType(URI.create("https://proelitemotors.com/errors/bad-request"));
+        pd.setProperty("timestamp", Instant.now());
+        log.warn("❌ Message not readable: {}", detail);
         return ResponseEntity.badRequest().body(pd);
     }
 
