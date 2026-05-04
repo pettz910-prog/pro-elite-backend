@@ -55,7 +55,7 @@ public class VehicleMapper {
                 .exteriorColor(v.getExteriorColor())
                 .interiorColor(v.getInteriorColor())
                 .engine(v.getEngine())
-                .drivetrain(v.getDrivetrain())
+                .drivetrain(String.valueOf(v.getDrivetrain()))
                 .doors(v.getDoors())
                 .seats(v.getSeats())
                 .location(v.getLocation())

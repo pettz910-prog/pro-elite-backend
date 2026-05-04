@@ -35,7 +35,7 @@ public class UpdateVehicleRequest {
     private String exteriorColor;
     private String interiorColor;
     private String engine;
-    private String drivetrain;
+    private Drivetrain drivetrain;
     private Integer doors;
     private Integer seats;
     private String location;
