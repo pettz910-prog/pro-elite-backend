@@ -98,8 +98,9 @@ public class Vehicle extends BaseEntity {
     @Column(name = "engine", length = 100)
     private String engine;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "drivetrain", length = 20)
-    private String drivetrain;
+    private Drivetrain drivetrain;
 
     @Column(name = "doors")
     private Integer doors;
