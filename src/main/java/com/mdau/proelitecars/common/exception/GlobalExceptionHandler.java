@@ -103,4 +103,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("❌ Unhandled exception: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(pd);
     }
+
+
+
 }
