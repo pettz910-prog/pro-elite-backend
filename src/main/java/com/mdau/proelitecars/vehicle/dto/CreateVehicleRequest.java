@@ -46,6 +46,8 @@ public class CreateVehicleRequest {
     private String engine;
     private Drivetrain drivetrain;
     private Integer doors;
+
+
     private Integer seats;
     private String location;
     private String description;
