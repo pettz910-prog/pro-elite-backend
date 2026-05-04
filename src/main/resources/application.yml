@@ -58,6 +58,10 @@ spring:
     serialization:
       write-dates-as-timestamps: false
     time-zone: UTC
+    deserialization:
+      fail-on-unknown-properties: false
+    mapper:
+      accept-case-insensitive-enums: true
 
 app:
   jwt:
