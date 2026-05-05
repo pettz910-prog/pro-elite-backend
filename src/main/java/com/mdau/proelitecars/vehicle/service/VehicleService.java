@@ -54,7 +54,8 @@ public class VehicleService {
     @Transactional(readOnly = true)
     public List<VehicleCardDto> findFeatured() {
         return vehicleRepository
-                .findTop6ByFeaturedTrueAndStatusOrderByCreatedAtDesc(VehicleStatus.AVAILABLE)
+                .findTop6ByFeaturedTrueAndStatusOrderByCreatedAtDesc(
+                        VehicleStatus.AVAILABLE)
                 .stream()
                 .map(vehicleMapper::toCardDto)
                 .toList();
@@ -64,8 +65,44 @@ public class VehicleService {
     @Transactional(readOnly = true)
     public VehicleDto findById(UUID id) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle", id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle", id));
         return vehicleMapper.toDto(vehicle);
+    }
+
+    // ── Public: distinct makes from live inventory ────────────────────────
+    @Transactional(readOnly = true)
+    public List<String> findDistinctMakes() {
+        return vehicleRepository.findDistinctMakes();
+    }
+
+    // ── Public: distinct models for a given make ──────────────────────────
+    @Transactional(readOnly = true)
+    public List<String> findDistinctModelsByMake(String make) {
+        return vehicleRepository.findDistinctModelsByMake(make);
+    }
+
+    // ── Public: search metadata (makes, styles, years, price/mileage range)
+    @Transactional(readOnly = true)
+    public VehicleSearchMetaDto getSearchMeta() {
+        List<String> makes      = vehicleRepository.findDistinctMakes();
+        List<String> bodyStyles = vehicleRepository.findDistinctBodyStyles();
+        List<Integer> years     = vehicleRepository.findDistinctYears();
+        BigDecimal minPrice     = vehicleRepository.findMinPrice();
+        BigDecimal maxPrice     = vehicleRepository.findMaxPrice();
+        Integer minMileage      = vehicleRepository.findMinMileage();
+        Integer maxMileage      = vehicleRepository.findMaxMileage();
+
+        return VehicleSearchMetaDto.builder()
+                .makes(makes)
+                .bodyStyles(bodyStyles)
+                .years(years)
+                .minPrice(minPrice != null ? minPrice : BigDecimal.ZERO)
+                .maxPrice(maxPrice != null ? maxPrice
+                        : new BigDecimal("500000"))
+                .minMileage(minMileage != null ? minMileage : 0)
+                .maxMileage(maxMileage != null ? maxMileage : 200000)
+                .build();
     }
 
     // ── Staff/Admin: create ───────────────────────────────────────────────
@@ -105,7 +142,8 @@ public class VehicleService {
                 .build();
 
         Vehicle saved = vehicleRepository.save(vehicle);
-        log.info("✅ Vehicle created: {} [{}]", saved.getTitle(), saved.getId());
+        log.info("✅ Vehicle created: {} [{}]",
+                saved.getTitle(), saved.getId());
         return vehicleMapper.toDto(saved);
     }
 
@@ -113,14 +151,14 @@ public class VehicleService {
     @Transactional
     public VehicleDto update(UUID id, UpdateVehicleRequest request) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle", id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle", id));
 
-        // ── Orphan-safe image replacement ─────────────────────────────────
         if (request.getImages() != null) {
             List<String> oldImages = vehicle.getImages() != null
-                    ? new ArrayList<>(vehicle.getImages()) : new ArrayList<>();
+                    ? new ArrayList<>(vehicle.getImages())
+                    : new ArrayList<>();
             List<String> newImages = request.getImages();
-            // Find images removed from the list and delete them from Cloudinary
             oldImages.stream()
                     .filter(url -> !newImages.contains(url))
                     .map(cloudinaryService::extractPublicId)
@@ -128,50 +166,77 @@ public class VehicleService {
             vehicle.setImages(newImages);
         }
 
-        // ── Orphan-safe primary image replacement ──────────────────────────
         if (request.getPrimaryImageUrl() != null
                 && vehicle.getPrimaryImageUrl() != null
-                && !request.getPrimaryImageUrl().equals(vehicle.getPrimaryImageUrl())) {
-            // Only delete if the old primary is not in the new images list
+                && !request.getPrimaryImageUrl().equals(
+                        vehicle.getPrimaryImageUrl())) {
             List<String> newImages = request.getImages() != null
                     ? request.getImages() : vehicle.getImages();
-            if (newImages == null || !newImages.contains(vehicle.getPrimaryImageUrl())) {
+            if (newImages == null
+                    || !newImages.contains(vehicle.getPrimaryImageUrl())) {
                 cloudinaryService.deleteImage(
-                        cloudinaryService.extractPublicId(vehicle.getPrimaryImageUrl()));
+                        cloudinaryService.extractPublicId(
+                                vehicle.getPrimaryImageUrl()));
             }
             vehicle.setPrimaryImageUrl(request.getPrimaryImageUrl());
         } else if (request.getPrimaryImageUrl() != null) {
             vehicle.setPrimaryImageUrl(request.getPrimaryImageUrl());
         }
 
-        if (request.getMake()          != null) vehicle.setMake(request.getMake());
-        if (request.getModel()         != null) vehicle.setModel(request.getModel());
-        if (request.getTrim()          != null) vehicle.setTrim(request.getTrim());
-        if (request.getYear()          != null) vehicle.setYear(request.getYear());
-        if (request.getVin()           != null) vehicle.setVin(request.getVin());
-        if (request.getStockNumber()   != null) vehicle.setStockNumber(request.getStockNumber());
-        if (request.getPrice()         != null) vehicle.setPrice(request.getPrice());
-        if (request.getMsrp()          != null) vehicle.setMsrp(request.getMsrp());
-        if (request.getStatus()        != null) vehicle.setStatus(request.getStatus());
-        if (request.getCondition()     != null) vehicle.setCondition(request.getCondition());
-        if (request.getBodyStyle()     != null) vehicle.setBodyStyle(request.getBodyStyle());
-        if (request.getFuelType()      != null) vehicle.setFuelType(request.getFuelType());
-        if (request.getTransmission()  != null) vehicle.setTransmission(request.getTransmission());
-        if (request.getBadge()         != null) vehicle.setBadge(request.getBadge());
-        if (request.getMileage()       != null) vehicle.setMileage(request.getMileage());
-        if (request.getExteriorColor() != null) vehicle.setExteriorColor(request.getExteriorColor());
-        if (request.getInteriorColor() != null) vehicle.setInteriorColor(request.getInteriorColor());
-        if (request.getEngine()        != null) vehicle.setEngine(request.getEngine());
-        if (request.getDrivetrain()    != null) vehicle.setDrivetrain(request.getDrivetrain());
-        if (request.getDoors()         != null) vehicle.setDoors(request.getDoors());
-        if (request.getSeats()         != null) vehicle.setSeats(request.getSeats());
-        if (request.getLocation()      != null) vehicle.setLocation(request.getLocation());
-        if (request.getDescription()   != null) vehicle.setDescription(request.getDescription());
-        if (request.getFeatured()      != null) vehicle.setFeatured(request.getFeatured());
-        if (request.getFeatures()      != null) vehicle.setFeatures(request.getFeatures());
+        if (request.getMake()          != null)
+            vehicle.setMake(request.getMake());
+        if (request.getModel()         != null)
+            vehicle.setModel(request.getModel());
+        if (request.getTrim()          != null)
+            vehicle.setTrim(request.getTrim());
+        if (request.getYear()          != null)
+            vehicle.setYear(request.getYear());
+        if (request.getVin()           != null)
+            vehicle.setVin(request.getVin());
+        if (request.getStockNumber()   != null)
+            vehicle.setStockNumber(request.getStockNumber());
+        if (request.getPrice()         != null)
+            vehicle.setPrice(request.getPrice());
+        if (request.getMsrp()          != null)
+            vehicle.setMsrp(request.getMsrp());
+        if (request.getStatus()        != null)
+            vehicle.setStatus(request.getStatus());
+        if (request.getCondition()     != null)
+            vehicle.setCondition(request.getCondition());
+        if (request.getBodyStyle()     != null)
+            vehicle.setBodyStyle(request.getBodyStyle());
+        if (request.getFuelType()      != null)
+            vehicle.setFuelType(request.getFuelType());
+        if (request.getTransmission()  != null)
+            vehicle.setTransmission(request.getTransmission());
+        if (request.getBadge()         != null)
+            vehicle.setBadge(request.getBadge());
+        if (request.getMileage()       != null)
+            vehicle.setMileage(request.getMileage());
+        if (request.getExteriorColor() != null)
+            vehicle.setExteriorColor(request.getExteriorColor());
+        if (request.getInteriorColor() != null)
+            vehicle.setInteriorColor(request.getInteriorColor());
+        if (request.getEngine()        != null)
+            vehicle.setEngine(request.getEngine());
+        if (request.getDrivetrain()    != null)
+            vehicle.setDrivetrain(request.getDrivetrain());
+        if (request.getDoors()         != null)
+            vehicle.setDoors(request.getDoors());
+        if (request.getSeats()         != null)
+            vehicle.setSeats(request.getSeats());
+        if (request.getLocation()      != null)
+            vehicle.setLocation(request.getLocation());
+        if (request.getDescription()   != null)
+            vehicle.setDescription(request.getDescription());
+        if (request.getFeatured()      != null)
+            vehicle.setFeatured(request.getFeatured());
+        if (request.getFeatures()      != null)
+            vehicle.setFeatures(request.getFeatures());
 
         Vehicle saved = vehicleRepository.save(vehicle);
-        log.info("✅ Vehicle updated: {} [{}]", saved.getTitle(), saved.getId());
+        log.info("✅ Vehicle updated: {} [{}]",
+                saved.getTitle(), saved.getId());
         return vehicleMapper.toDto(saved);
     }
 
@@ -179,20 +244,22 @@ public class VehicleService {
     @Transactional
     public VehicleDto updateStatus(UUID id, VehicleStatus status) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle", id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle", id));
         vehicle.setStatus(status);
         Vehicle saved = vehicleRepository.save(vehicle);
-        log.info("✅ Vehicle status updated: {} → {}", saved.getTitle(), status);
+        log.info("✅ Vehicle status updated: {} → {}",
+                saved.getTitle(), status);
         return vehicleMapper.toDto(saved);
     }
 
-    // ── Staff/Admin: delete — cleans up ALL images from Cloudinary first ──
+    // ── Staff/Admin: delete ───────────────────────────────────────────────
     @Transactional
     public void delete(UUID id) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle", id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Vehicle", id));
 
-        // Collect all image URLs owned by this vehicle
         List<String> allImages = new ArrayList<>();
         if (vehicle.getImages() != null) {
             allImages.addAll(vehicle.getImages());
@@ -202,9 +269,8 @@ public class VehicleService {
             allImages.add(vehicle.getPrimaryImageUrl());
         }
 
-        // Delete all images from Cloudinary before removing the record
         if (!allImages.isEmpty()) {
-            log.info("🗑️ Deleting {} Cloudinary image(s) for vehicle: {}",
+            log.info("🗑️ Deleting {} image(s) for vehicle: {}",
                     allImages.size(), id);
             allImages.stream()
                     .map(cloudinaryService::extractPublicId)

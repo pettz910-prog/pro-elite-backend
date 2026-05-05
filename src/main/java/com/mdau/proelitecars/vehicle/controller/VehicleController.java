@@ -49,11 +49,12 @@ public class VehicleController {
 
         String[] sortParts = sort.split(",");
         String sortField = sortParts[0];
-        Sort.Direction direction = sortParts.length > 1 &&
-                sortParts[1].equalsIgnoreCase("asc")
+        Sort.Direction direction = sortParts.length > 1
+                && sortParts[1].equalsIgnoreCase("asc")
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(direction, sortField));
 
         Page<VehicleCardDto> result = vehicleService.findAll(
                 make, model, minYear, maxYear,
@@ -67,13 +68,40 @@ public class VehicleController {
     // ── GET /api/vehicles/featured — public ───────────────────────────────
     @GetMapping("/featured")
     public ResponseEntity<ApiResponse<List<VehicleCardDto>>> featured() {
-        return ResponseEntity.ok(ApiResponse.ok(vehicleService.findFeatured()));
+        return ResponseEntity.ok(
+                ApiResponse.ok(vehicleService.findFeatured()));
+    }
+
+    // ── GET /api/vehicles/search/meta — public ────────────────────────────
+    // Returns distinct makes, body styles, years, price range, mileage range
+    // from live inventory. Powers homepage dropdowns and filter sliders.
+    @GetMapping("/search/meta")
+    public ResponseEntity<ApiResponse<VehicleSearchMetaDto>> searchMeta() {
+        return ResponseEntity.ok(
+                ApiResponse.ok(vehicleService.getSearchMeta()));
+    }
+
+    // ── GET /api/vehicles/search/makes — public ───────────────────────────
+    @GetMapping("/search/makes")
+    public ResponseEntity<ApiResponse<List<String>>> makes() {
+        return ResponseEntity.ok(
+                ApiResponse.ok(vehicleService.findDistinctMakes()));
+    }
+
+    // ── GET /api/vehicles/search/models?make= — public ───────────────────
+    @GetMapping("/search/models")
+    public ResponseEntity<ApiResponse<List<String>>> models(
+            @RequestParam String make) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(vehicleService.findDistinctModelsByMake(make)));
     }
 
     // ── GET /api/vehicles/{id} — public ───────────────────────────────────
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<VehicleDto>> findById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.ok(vehicleService.findById(id)));
+    public ResponseEntity<ApiResponse<VehicleDto>> findById(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(
+                ApiResponse.ok(vehicleService.findById(id)));
     }
 
     // ── POST /api/vehicles — STAFF or ADMIN ───────────────────────────────
@@ -95,13 +123,14 @@ public class VehicleController {
         return ResponseEntity.ok(ApiResponse.ok("Vehicle updated", dto));
     }
 
-    // ── PATCH /api/vehicles/{id}/status — STAFF or ADMIN ──────────────────
+    // ── PATCH /api/vehicles/{id}/status — STAFF or ADMIN ─────────────────
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
     public ResponseEntity<ApiResponse<VehicleDto>> updateStatus(
             @PathVariable UUID id,
             @Valid @RequestBody VehicleStatusRequest request) {
-        VehicleDto dto = vehicleService.updateStatus(id, request.getStatus());
+        VehicleDto dto = vehicleService.updateStatus(
+                id, request.getStatus());
         return ResponseEntity.ok(ApiResponse.ok("Status updated", dto));
     }
 
