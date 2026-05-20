@@ -270,4 +270,5 @@ public class EmailServiceImpl implements EmailService {
         helper.setText(htmlContent, true);
         javaMailSender.send(message);
     }
+
 }
