@@ -19,6 +19,7 @@ import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -40,8 +41,8 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.brevo.api-key:}")
     private String brevoApiKey;
 
-    @Value("${app.admin.email}")
-    private String adminEmail;
+    @Value("${app.admin.emails}")
+    private List<String> adminEmails;
 
     private static final String BREVO_API_URL =
             "https://api.brevo.com/v3/smtp/email";
@@ -65,11 +66,11 @@ public class EmailServiceImpl implements EmailService {
                 .build();
         String method = (brevoApiKey != null && !brevoApiKey.isBlank())
                 ? "Brevo API" : "SMTP fallback";
-        log.info("✅ EmailService initialized — method: {}, from: {}",
-                method, fromEmail);
+        log.info("✅ EmailService initialized — method: {}, from: {}, admin recipients: {}",
+                method, fromEmail, adminEmails);
     }
 
-    // ── Inquiry alert to admin ─────────────────────────────────────────────
+    // ── Inquiry alert to admin(s) ──────────────────────────────────────────
     @Async
     @Override
     public CompletableFuture<Boolean> sendInquiryAlertToAdmin(Inquiry inquiry) {
@@ -89,18 +90,18 @@ public class EmailServiceImpl implements EmailService {
             model.put("source",        inquiry.getSource() != null
                     ? inquiry.getSource().name().replace("_", " ") : "—");
 
-            boolean sent = sendHtmlEmail(
-                    adminEmail,
-                    "New Inquiry: " + inquiry.getCustomerName()
+            String subject = "New Inquiry: " + inquiry.getCustomerName()
                     + " — " + (inquiry.getVehicleTitle() != null
-                            ? inquiry.getVehicleTitle() : "General"),
-                    "inquiry-alert-admin.ftl",
-                    model
-            );
-            if (sent) log.info("✅ Admin alert sent for inquiry: {}",
-                    inquiry.getId());
+                    ? inquiry.getVehicleTitle() : "General");
+
+            boolean sent = sendHtmlEmailToMany(adminEmails, subject,
+                    "inquiry-alert-admin.ftl", model);
+
+            if (sent) log.info("✅ Admin alert sent to {} for inquiry: {}",
+                    adminEmails, inquiry.getId());
             else      log.error("❌ Failed admin alert for inquiry: {}",
                     inquiry.getId());
+
             return CompletableFuture.completedFuture(sent);
         } catch (Exception e) {
             log.error("❌ Exception sending admin alert: {}", e.getMessage(), e);
@@ -167,11 +168,18 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    // ── Core HTML email sender ────────────────────────────────────────────
+    // ── Core HTML email sender (single recipient) ─────────────────────────
     @Override
     public boolean sendHtmlEmail(String to, String subject,
-                                  String templateName,
-                                  Map<String, Object> model) {
+                                 String templateName,
+                                 Map<String, Object> model) {
+        return sendHtmlEmailToMany(List.of(to), subject, templateName, model);
+    }
+
+    // ── Core HTML email sender (multiple recipients) ──────────────────────
+    private boolean sendHtmlEmailToMany(List<String> recipients, String subject,
+                                        String templateName,
+                                        Map<String, Object> model) {
         try {
             Template template = freemarkerConfig.getTemplate(templateName);
             String html = FreeMarkerTemplateUtils
@@ -179,8 +187,8 @@ public class EmailServiceImpl implements EmailService {
 
             if (brevoApiKey != null && !brevoApiKey.isBlank()) {
                 try {
-                    sendViaBrevoApi(to, subject, html);
-                    log.debug("📧 Email sent via Brevo to: {}", to);
+                    sendViaBrevoApi(recipients, subject, html);
+                    log.debug("📧 Email sent via Brevo to: {}", recipients);
                     return true;
                 } catch (IOException e) {
                     log.warn("⚠️ Brevo failed, falling back to SMTP: {}",
@@ -188,21 +196,25 @@ public class EmailServiceImpl implements EmailService {
                 }
             }
 
-            sendViaSMTP(to, subject, html);
-            log.debug("📧 Email sent via SMTP to: {}", to);
+            // SMTP fallback — send individually (SMTP to[] also works
+            // but keeping it simple and auditable per recipient)
+            for (String to : recipients) {
+                sendViaSMTP(to, subject, html);
+                log.debug("📧 Email sent via SMTP to: {}", to);
+            }
             return true;
 
         } catch (Exception e) {
             log.error("❌ All email methods failed for {}: {}",
-                    to, e.getMessage(), e);
+                    recipients, e.getMessage(), e);
             return false;
         }
     }
 
-    // ── Brevo REST API ─────────────────────────────────────────────────────
-    private void sendViaBrevoApi(String toEmail,
-                                  String subject,
-                                  String htmlContent) throws IOException {
+    // ── Brevo REST API (accepts multiple recipients) ───────────────────────
+    private void sendViaBrevoApi(List<String> toEmails,
+                                 String subject,
+                                 String htmlContent) throws IOException {
         Map<String, Object> payload = new HashMap<>();
 
         Map<String, String> sender = new HashMap<>();
@@ -210,9 +222,15 @@ public class EmailServiceImpl implements EmailService {
         sender.put("name",  fromName);
         payload.put("sender", sender);
 
-        Map<String, String> recipient = new HashMap<>();
-        recipient.put("email", toEmail);
-        payload.put("to", new Map[]{recipient});
+        // Build the "to" array — one entry per recipient
+        List<Map<String, String>> recipients = toEmails.stream()
+                .map(email -> {
+                    Map<String, String> r = new HashMap<>();
+                    r.put("email", email);
+                    return r;
+                })
+                .toList();
+        payload.put("to", recipients);
 
         payload.put("subject",     subject);
         payload.put("htmlContent", htmlContent);
@@ -239,10 +257,10 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    // ── SMTP fallback ──────────────────────────────────────────────────────
+    // ── SMTP fallback (single recipient) ──────────────────────────────────
     private void sendViaSMTP(String toEmail,
-                              String subject,
-                              String htmlContent) throws Exception {
+                             String subject,
+                             String htmlContent) throws Exception {
         MimeMessage message = javaMailSender.createMimeMessage();
         MimeMessageHelper helper =
                 new MimeMessageHelper(message, true, "UTF-8");

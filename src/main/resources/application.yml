@@ -80,7 +80,9 @@ app:
     sender-name: ${BREVO_SENDER_NAME:Pro Elite Motors}
 
   admin:
-    email: ${ADMIN_EMAIL:admin@proelitemotors.com}
+    emails:
+      - mdaucodes@gmail.com
+      - sam@proautosales.com
 
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
