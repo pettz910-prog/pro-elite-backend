@@ -80,6 +80,7 @@ app:
     sender-name: ${BREVO_SENDER_NAME:Pro Elite Motors}
 
   admin:
+    email: ${APP_ADMIN_EMAIL:sam@proautosales.com}
     emails:
       - mdaucodes@gmail.com
       - sam@proautosales.com
