@@ -81,9 +81,7 @@ app:
 
   admin:
     email: ${APP_ADMIN_EMAIL:sam@proautosales.com}
-    emails:
-      - mdaucodes@gmail.com
-      - sam@proautosales.com
+    emails: mdaucodes@gmail.com,sam@proautosales.com
 
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
